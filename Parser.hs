@@ -1,6 +1,5 @@
 module Parser where
 import Control.Applicative
-import Numeric
 
 newtype Parser f a = Parser { runParser :: String -> f (a, String) }
 
@@ -10,7 +9,7 @@ parseMap fn (val, str) = (fn val, str)
 instance Functor f => Functor (Parser f) where
     fmap :: (a -> b) -> Parser f a -> Parser f b
     fmap fn (Parser pa) = 
-        Parser (\str -> parseMap fn <$> pa str)
+        Parser $ \str -> parseMap fn <$> pa str
 
 instance Monad f => Applicative (Parser f) where
     pure :: a -> Parser f a
@@ -18,7 +17,7 @@ instance Monad f => Applicative (Parser f) where
         Parser (\str -> pure (val, str))
     (<*>) :: Parser f (a -> b) -> Parser f a -> Parser f b
     Parser p1 <*> Parser p2 =
-        Parser (\str -> p1 str >>= \(atob, str') -> parseMap atob <$> p2 str')
+        Parser $ \str -> p1 str >>= \(atob, str') -> parseMap atob <$> p2 str'
 
 instance (Monad f, Alternative f) => Alternative (Parser f) where
     empty :: Parser f a
@@ -30,11 +29,8 @@ instance (Monad f, Alternative f) => Alternative (Parser f) where
 
 instance Monad f => Monad (Parser f) where
     (>>=) :: Parser f a -> (a -> Parser f b) -> Parser f b
-    Parser pa >>= fn = Parser ps
-      where
-        ps str =
-            do (a, str') <- pa str
-               runParser (fn a) str'
+    Parser pa >>= fn =
+        Parser $ \str -> pa str >>= \(a, str') -> runParser (fn a) str'
 
 {- Examples -}
 
